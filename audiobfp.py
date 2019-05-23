@@ -164,31 +164,32 @@ def fir_filter(b, data):
 
 def myfreqz(b,a,n,fs):
     """
-    :param b: numerator, b(i) * e^-jwi
+    calculate H(e^jw) from the filter coefficients
+    :param b: numerator coefficients, b(i) * e^-jwi
         B(exp(jw) = sum ( b(i) * exp(-jwi), i = 0...M)
-    :param a: demonitor, a(i) * e-jwi
-    :param N: number of samples
+    :param a: demonitor coefficients, a(i) * e-jwi
+    :param N: number of samples -- number of frequencies to evaluate w at
     :param fs: sample frequency
     :return: w: frequences
-             h: complex number
+             h: H(w) at frequency w
     """
     M = len(b)
     N = len(a)
-    h = np.zeros(n)
-    w = np.zeros(n)
-
-    w = np.arange(0, n, fs/float(n))
-    for jj in range(0,n):
+    h = np.zeros(n,dtype=complex)
+    ww = np.arange(0, np.pi, np.pi/float(n))            # 0 to pi radians in increments of 1/n
+    jj = 0
+    for w in ww:
         num = 0.0
         den = 0.0
 
         for i in range(0,M):
-            num += b[i]* np.exp(-2j * np.pi * w[jj] * i)
+            num += b[i] * np.exp(-1j * w * i)           # exp(-j*w*n)  , n -> 0, M
         for i in range(0, N):
-            den += a[i] * np.exp(-2j * np.pi * w[jj] * i)
-        h[jj] = num/den
-
-    return (w,h)
+            den += a[i] * np.exp(-1j * w * i)           # exp(j*w*n)   , n -> 0 , N
+        h[jj] = num/den                                 # H
+        jj += 1
+    ww = ww * fs / (2 * np.pi)                          # convert from radians to hz
+    return (ww,h)
 
 """"
 IIR BPF:
@@ -258,7 +259,8 @@ print "hfp:  num b coeff: " + str(len(bhpf)) + "  num a coeff: " + str(len(ahpf)
 print "b coeff: " + str(bhpf) + "\n"
 print "a coeff: " + str(ahpf) + "\n"
 if True:
-    whpf, hhpf = signal.freqz(bhpf,ahpf, 512, whole=False, fs=fs)
+#    whpf, hhpf = signal.freqz(bhpf,ahpf, 512, whole=False, fs=fs)
+    whpf, hhpf = myfreqz(bhpf,ahpf, 512, fs)
     plt.title("IIR High Pass Filter")
     plt.xlabel(" Freq(hz)")
     plt.ylabel(" Mag (db)")
@@ -274,7 +276,8 @@ print "b coeff: " + str(blpf) + "\n"
 print "a coeff: " + str(alpf) + "\n"
 
 if True:
-    wlpf, hlpf = signal.freqz(blpf,alpf, 512, whole=False, fs=fs)
+#    wlpf, hlpf = signal.freqz(blpf,alpf, 512, whole=False, fs=fs)
+    wlpf, hlpf = myfreqz(blpf,alpf, 512, fs)
     plt.title("IIR Low Pass Filter")
     plt.xlabel(" Freq(hz)")
     plt.ylabel(" Mag (db)")
